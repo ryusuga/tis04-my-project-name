@@ -1,0 +1,162 @@
+@@ -0,0 +1,161 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<Module>
+<ModulePrefs title="Customer Self-Registration">
+	<Require feature="dynamic-height"/>
+</ModulePrefs>
+<UserPref name="_rest_query_url" display_name="OSB DataSource URI" required="true" default_value="http://school-solution-outb.tischool.com:7101/CreateCustomer_REST_SB/CreateCustomer" />
+<Content type="html">
+<![CDATA[
+<body onload='gadgets.window.adjustHeight();'>
+<!-- Javascript block called by the different button -->
+<script type="text/javascript">
+
+//helper function for page validation
+function formValidation(){
+	for(i=0;i<7;i++){
+		box = document.registration.elements[i];
+		if(!box.value){
+			alert('You haven\'t filled in the ' + box.name + '!' );
+			box.focus();
+			return false;
+		}
+	}	
+	return true;	
+}
+
+//JSON message creation
+function createJSONfromFORM(){
+	// gather data that will be sent to the server
+	var jsonText = '';
+		
+	// Exchanged JSON format is
+	// { 'Name':'[Name]', 'Number':'0', 'categorization':'[Categorization]',
+	//    'billing-address':'[Address]', 'billing-city':'[City]', 'billing-postalcode':'[PostalCode], 'billing-countrycode':'[CountryCode]' } 
+
+	jsonText   = '{'
+	           + '"Name": "' + document.registration.Name.value + '",'
+	           + '"categorization": "' + document.registration.Categorization.value + '",'
+	           + '"billing-address": "' + document.registration.Address.value + '",'
+	           + '"billing-city": "' + document.registration.City.value + '",'
+	           + '"billing-postalcode": "' + document.registration.PostalCode.value + '",'
+	           + '"billing-countrycode": "' + document.registration.CountryCode.value + '"'	
+	           + '}';
+	
+	return jsonText;
+}
+
+
+//Operations on service call success
+function processServiceCall( obj ){	
+
+	document.getElementById('beforeRegistration').style.display = 'none';
+	
+	document.getElementById('afterRegistration').style.display = 'block';
+	document.getElementById('jsonResponsePlaceHolder').innerHTML = obj.text;
+	document.getElementById('jsonErrorResponsePlaceHolder').innerHTML = obj.errors;  
+
+	document.getElementById('jsonResponse').style.display = 'block';
+        var response = "";
+        if(obj.data.responseCode == "AAA")
+          response = "Dear Customer, you will be contacted rapidly by our customer center.";
+        else if (obj.data.responseCode == "TTT")        {  
+          response = "The registration failed due to a technical error. Please, try again later.";
+        }
+        else if (obj.data.responseCode == "EEE")        {
+          response = "You are a VIP customer. Please, contact directly our office at Sao Polo.";
+        }
+        else
+        {
+           response = "Thanks for registering";
+        } 
+	document.getElementById('afterRegistrationPlaceHolder').innerHTML = response;	
+}
+
+
+
+function callRestWebService(jsonData){
+  if(jsonData){
+ 
+	var params = {};
+	params[gadgets.io.RequestParameters.CONTENT_TYPE] = gadgets.io.ContentType.JSON;
+  	params[gadgets.io.RequestParameters.METHOD] = gadgets.io.MethodType.POST;
+        params[gadgets.io.RequestParameters.POST_DATA] = jsonData;  //gadgets.io.encodedValues(jsonData);
+	
+  	var prefs = new gadgets.Prefs();
+	var url = prefs.getString("_rest_query_url");
+        
+        gadgets.io.makeRequest(url, processServiceCall, params);
+}}
+
+//main action on submit
+function onSubmitHandler(){
+	//Validation on Mandatory fields
+	if(!formValidation()){
+		return;
+	}	
+	
+	//create the json text from the FORM
+	var jsonData = createJSONfromFORM();
+	
+	//fill in jsonRequestPlaceHolder
+	document.getElementById('jsonRequest').style.display = 'block';
+	document.getElementById('jsonRequestPlaceHolder').innerHTML = jsonData;
+	
+	//call the web service asynchronously	
+	callRestWebService(jsonData);
+}
+</script>
+
+
+<h2>Customer Self-Registration Form</h2>
+
+<!-- becomes visible on start -->
+<div id="beforeRegistration">
+<h3 >Fill in the following form to get contacted by TEA.</h3>
+
+<div id="registrationFailderPlaceHolder" style="color: red;display: none;"></div>
+
+<form name="registration" action="#" method="post" onsubmit="onSubmitHandler(); return false;">
+<table style="border-style:none;border-width: 0px;width: 350px;" >
+<tr> <td colspan="2" style="border-bottom-style: solid;border-bottom-width: 1px;" > Corporate Information </td> </tr>
+<tr > <td style="width: 30%;">Name: </td><td style="width: 90%"> <input type="text" style="width: 90%;" name="Name" /> * </td> </tr>
+<tr > <td>Type of business: </td><td> 
+<select id="Categorization" style="width: 90%;">
+<option value="type2">Retail</option>
+<option value="type3">Business</option>
+<option value="type1">Business (with Business Rules / M9-A-001)</option>
+</select> * </td> </tr>
+
+<tr> <td colspan="2" style="border-bottom-style: solid;border-bottom-width: 1px;" > Communication Information </td> </tr>
+<tr > <td>Address: </td><td> <input style="width: 90%;" type="text"  name="Address" /> * </td> </tr>
+<tr > <td>City: </td><td> <input style="width: 90%;" type="text"  name="City" /> * </td> </tr>
+<tr > <td>Postal Code: </td><td> <input style="width: 90%;" type="text"   name="PostalCode" /> * </td> </tr>
+<tr > <td>Country Code: </td><td> <input style="width: 90%;" type="text" name="CountryCode" /> * </td> </tr>
+
+<tr > <td> </td><td> 
+
+<input type="button" value="Register" onclick="onSubmitHandler()" />  </td> </tr>
+</table>
+</form>
+</div>
+
+<!-- becomes visisble after the server complete response -->
+<div id="afterRegistration" style="display: none;">
+<h3>Thanks for registering</h3>
+<div id="afterRegistrationPlaceHolder"></div>
+</div>
+
+<!-- technical informations -->
+<div id="jsonRequest" style="display: none; color: gray;">
+<h3>JSON Request</h3>
+<div id="jsonRequestPlaceHolder"></div>
+</div>
+<div id="jsonResponse"  style="display: none; color: gray;">
+<h3>JSON Response</h3>
+<div id="jsonResponsePlaceHolder"></div>
+<div style="color:red;" id="jsonErrorResponsePlaceHolder"></div></div>
+
+</body>
+]]>
+</Content>
+</Module>
